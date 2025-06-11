@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 const Auth = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -63,69 +65,75 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-8">
-        <div className="text-center">
-          <div className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-3xl font-bold text-transparent mb-2">
-            GrowthScript
-          </div>
-          <h2 className="text-2xl font-bold">
-            {isSignUp ? 'Create your account' : 'Sign in to your account'}
-          </h2>
-          <p className="text-muted-foreground mt-2">
-            {isSignUp 
-              ? 'Start your marketing agency growth journey' 
-              : 'Welcome back! Please sign in to continue'
-            }
-          </p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="mt-1"
-              placeholder="Enter your email"
-            />
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <div className="flex items-center justify-center bg-background px-4 py-12">
+        <div className="w-full max-w-md space-y-8">
+          <div className="text-center">
+            <div className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-3xl font-bold text-transparent mb-2">
+              GrowthScript
+            </div>
+            <h2 className="text-2xl font-bold">
+              {isSignUp ? 'Create your account' : 'Sign in to your account'}
+            </h2>
+            <p className="text-muted-foreground mt-2">
+              {isSignUp 
+                ? 'Start your marketing agency growth journey' 
+                : 'Welcome back! Please sign in to continue'
+              }
+            </p>
           </div>
 
-          <div>
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="mt-1"
-              placeholder="Enter your password"
-              minLength={6}
-            />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="mt-1"
+                placeholder="Enter your email"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="mt-1"
+                placeholder="Enter your password"
+                minLength={6}
+              />
+            </div>
+
+            <Button type="submit" className="w-full" disabled={loading}>
+              {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
+            </Button>
+          </form>
+
+          <div className="text-center">
+            <button
+              type="button"
+              className="text-sm text-muted-foreground hover:text-foreground"
+              onClick={() => setIsSignUp(!isSignUp)}
+            >
+              {isSignUp 
+                ? 'Already have an account? Sign in' 
+                : "Don't have an account? Sign up"
+              }
+            </button>
           </div>
-
-          <Button type="submit" className="w-full" disabled={loading}>
-            {loading ? 'Loading...' : (isSignUp ? 'Create Account' : 'Sign In')}
-          </Button>
-        </form>
-
-        <div className="text-center">
-          <button
-            type="button"
-            className="text-sm text-muted-foreground hover:text-foreground"
-            onClick={() => setIsSignUp(!isSignUp)}
-          >
-            {isSignUp 
-              ? 'Already have an account? Sign in' 
-              : "Don't have an account? Sign up"
-            }
-          </button>
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 };

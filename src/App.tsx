@@ -10,7 +10,9 @@ import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Billing from "./pages/Billing";
 import Dashboard from "./pages/Dashboard";
+import ClientChat from "./pages/ClientChat";
 import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
 import ProtectedRoute from "./components/ProtectedRoute";
 import SubscriptionRoute from "./components/SubscriptionRoute";
 
@@ -59,10 +61,26 @@ const AppRoutes = () => {
         } 
       />
       <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <Profile />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
         path="/dashboard" 
         element={
           <SubscriptionRoute>
             <Dashboard />
+          </SubscriptionRoute>
+        } 
+      />
+      <Route 
+        path="/chat/:clientId" 
+        element={
+          <SubscriptionRoute>
+            <ClientChat />
           </SubscriptionRoute>
         } 
       />

@@ -1,26 +1,28 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useUserSubscription } from '@/hooks/useUserSubscription';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
 import Footer from '@/components/Footer';
-import { ChevronDown, User, Settings, LogOut } from 'lucide-react';
+import AddClientDialog from '@/components/AddClientDialog';
+import EditClientDialog from '@/components/EditClientDialog';
+import { useClients, Client } from '@/hooks/useClients';
+import { ChevronDown, User, Settings, LogOut, Plus, MessageCircle, Edit, Trash2 } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 
 const Dashboard = () => {
+  const [showAddClientDialog, setShowAddClientDialog] = useState(false);
+  const [showEditClientDialog, setShowEditClientDialog] = useState(false);
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
   const { subscription, loading } = useUserSubscription();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { clients, isLoading: clientsLoading, deleteClient, isDeletingClient, refreshClients, canAddClient } = useClients();
 
   const handleSignOut = async () => {
     try {
@@ -50,10 +52,7 @@ const Dashboard = () => {
   };
 
   const handleProfile = () => {
-    toast({
-      title: "Profile",
-      description: "Profile page coming soon!"
-    });
+    navigate('/profile');
   };
 
   const handleSettings = () => {
@@ -62,82 +61,34 @@ const Dashboard = () => {
       description: "Settings page coming soon!"
     });
   };
-
-  const handleManageSubscription = async () => {
-    if (!user) {
+  const handleCreateNew = () => {
+    if (!canAddClient()) {
       toast({
-        title: "Error",
-        description: "You must be logged in to manage your subscription.",
-        variant: "destructive"
+        title: "Client Limit Reached",
+        description: `You have reached your plan's limit of ${subscription?.client_limit || 0} clients. Please upgrade your plan to add more clients.`,
+        variant: "destructive",
       });
       return;
     }
-
-    try {
-      console.log('Opening customer portal for user:', user.email);
-      const { data, error } = await supabase.functions.invoke('customer-portal');
-
-      if (error) {
-        console.error('Customer portal error:', error);
-        // If portal is not configured, redirect to billing page
-        if (error.message?.includes("Portal not configured") || data?.redirect_url) {
-          toast({
-            title: "Redirecting to Billing",
-            description: "Opening billing page to manage your subscription.",
-          });
-          navigate('/billing');
-          return;
-        }
-        
-        toast({
-          title: "Error",
-          description: "Failed to open subscription management. Please try again.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Handle the response from the edge function
-      if (data?.redirect_url && data?.message) {
-        toast({
-          title: "Redirecting to Billing",
-          description: data.message,
-        });
-        navigate('/billing');
-        return;
-      }
-
-      if (data?.url) {
-        // Open the customer portal in a new tab
-        window.open(data.url, '_blank');
-      } else {
-        // Fallback to billing page
-        toast({
-          title: "Redirecting to Billing",
-          description: "Opening billing page to manage your subscription.",
-        });
-        navigate('/billing');
-      }
-    } catch (err) {
-      console.error('Error opening customer portal:', err);
-      toast({
-        title: "Redirecting to Billing",
-        description: "Opening billing page to manage your subscription.",
-      });
-      navigate('/billing');
-    }
+    setShowAddClientDialog(true);
+  };
+  const handleTalkToGrowthScript = (clientId: string, clientName: string) => {
+    navigate(`/chat/${clientId}`);
+  };
+  const handleEdit = (client: Client) => {
+    setEditingClient(client);
+    setShowEditClientDialog(true);
+  };
+  const handleArchive = (clientId: string, clientName: string) => {
+    deleteClient(clientId);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+  if (loading || clientsLoading) {
+    return <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-screen bg-background flex flex-col">
+  return <div className="min-h-screen bg-background flex flex-col">
       <div className="border-b border-border/40">
         <div className="container flex h-16 items-center justify-between">
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-xl font-bold text-transparent">GrowthScript</div>
@@ -171,55 +122,47 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="container py-12 flex-1">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-8">
+      <div className="container py-8 flex-1">
+        <div className="mx-auto max-w-6xl">
+          <div className="mb-6">
             <h1 className="text-3xl font-bold">Welcome to your Dashboard</h1>
             <p className="text-muted-foreground mt-2">
               Manage your clients and grow your agency with AI-powered strategies.
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card>
-              <CardHeader>
-                <CardTitle>Current Plan</CardTitle>
-                <CardDescription>Your subscription details</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="font-medium capitalize">{subscription?.plan?.replace('_', ' ')}</p>
-                  <p className="text-sm text-muted-foreground">
+          {/* Reduced height stats section */}
+          <div className="grid gap-4 md:grid-cols-3 mb-8">
+            <Card className="py-2">
+              <CardContent className="p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Current Plan</p>
+                  <p className="text-lg font-semibold capitalize">{subscription?.plan?.replace('_', ' ')}</p>
+                  <p className="text-xs text-muted-foreground">
                     {subscription?.client_limit} client{subscription?.client_limit !== 1 ? 's' : ''} allowed
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Active Clients</CardTitle>
-                <CardDescription>Clients you're currently managing</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold">0</p>
-                  <p className="text-sm text-muted-foreground">
+            <Card className="py-2">
+              <CardContent className="p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">Active Clients</p>
+                  <p className="text-lg font-semibold">{clients.length}</p>
+                  <p className="text-xs text-muted-foreground">
                     of {subscription?.client_limit} clients
                   </p>
                 </div>
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>AI Strategies</CardTitle>
-                <CardDescription>Generated growth strategies</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <p className="text-2xl font-bold">0</p>
-                  <p className="text-sm text-muted-foreground">
+            <Card className="py-2">
+              <CardContent className="p-4">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-muted-foreground">AI Strategies</p>
+                  <p className="text-lg font-semibold">0</p>
+                  <p className="text-xs text-muted-foreground">
                     Strategies created
                   </p>
                 </div>
@@ -227,37 +170,104 @@ const Dashboard = () => {
             </Card>
           </div>
 
-          <div className="mt-12">
-            <Card>
-              <CardHeader>
-                <CardTitle>Quick Actions</CardTitle>
-                <CardDescription>Get started with managing your clients</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Button className="w-full sm:w-auto" disabled>
-                  Add New Client
-                </Button>
-                <Button variant="outline" className="w-full sm:w-auto ml-0 sm:ml-4" disabled>
-                  Generate Strategy
-                </Button>
-                <p className="text-sm text-muted-foreground">
-                  Client management features coming soon!
-                </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="mt-8 text-center">
-            <Button variant="outline" onClick={handleManageSubscription}>
-              Manage Subscription
-            </Button>
-          </div>
+          {/* Client List Panel */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Client List</CardTitle>
+              <CardDescription>Manage your clients and conversations</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Client Name</TableHead>
+                    <TableHead>Industry</TableHead>
+                    <TableHead>Last Updated</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clients.map(client => (
+                    <TableRow key={client.id}>
+                      <TableCell className="font-medium">{client.client_name}</TableCell>
+                      <TableCell className="text-muted-foreground">{client.industry || 'Not specified'}</TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {new Date(client.updated_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center space-x-2">
+                          <Button variant="outline" size="sm" onClick={() => handleTalkToGrowthScript(client.id, client.client_name)}>
+                            <MessageCircle className="h-4 w-4 mr-2" />
+                            Talk to GrowthScript
+                          </Button>
+                          <Button variant="outline" size="sm" onClick={() => handleEdit(client)}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="outline" size="sm" disabled={isDeletingClient}>
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will permanently delete "{client.client_name}" and all associated data including embeddings. This action cannot be undone.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleArchive(client.id, client.client_name)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  <TableRow>
+                    <TableCell className="font-medium">
+                      <Button 
+                        variant="ghost" 
+                        className={`h-auto p-0 font-normal text-left justify-start ${!canAddClient() ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        onClick={handleCreateNew}
+                        disabled={!canAddClient()}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        {canAddClient() ? 'Add New Client' : `Client Limit Reached (${subscription?.client_limit || 0})`}
+                      </Button>
+                    </TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                    <TableCell></TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
+      <AddClientDialog 
+        open={showAddClientDialog} 
+        onOpenChange={setShowAddClientDialog}
+        onClientAdded={refreshClients}
+      />
+
+      <EditClientDialog 
+        open={showEditClientDialog} 
+        onOpenChange={setShowEditClientDialog}
+        client={editingClient}
+        onClientUpdated={refreshClients}
+      />
+
       <Footer />
-    </div>
-  );
+    </div>;
 };
 
 export default Dashboard;
