@@ -1,7 +1,7 @@
 
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
-import { createClient } from "https://deno.land/x/supabase_js@2.39.7/mod.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -69,6 +69,10 @@ serve(async (req) => {
 
     logStep("Creating checkout session", { unitAmount, productName });
 
+    // Get the base URL from environment variable with fallback
+    const siteUrl = Deno.env.get("SITE_URL") || req.headers.get("origin") || "http://localhost:3000";
+    logStep("Using site URL", { siteUrl });
+
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       customer_email: customerId ? undefined : user.email,
@@ -84,8 +88,8 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${req.headers.get("origin")}/billing?success=true`,
-      cancel_url: `${req.headers.get("origin")}/billing?canceled=true`,
+      success_url: `${siteUrl}/billing?success=true`,
+      cancel_url: `${siteUrl}/billing?canceled=true`,
     });
 
     logStep("Checkout session created", { sessionId: session.id, url: session.url });

@@ -1,44 +1,52 @@
-
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-
+import { ChevronDown, User, LogOut } from "lucide-react";
 const Header = () => {
-  const { user, signOut } = useAuth();
+  const {
+    user,
+    signOut
+  } = useAuth();
   const navigate = useNavigate();
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   const handleSignOut = async () => {
     try {
-      const { error } = await signOut();
+      const {
+        error
+      } = await signOut();
       if (error) {
         console.error('Sign out error:', error);
         toast({
           title: "Error",
           description: "Failed to sign out. Please try again.",
-          variant: "destructive",
+          variant: "destructive"
         });
       } else {
         toast({
           title: "Signed out successfully",
-          description: "You have been signed out of your account",
+          description: "You have been signed out of your account"
         });
-        // Navigate to home page after successful sign out
-        navigate('/', { replace: true });
+        navigate('/', {
+          replace: true
+        });
       }
     } catch (err) {
       console.error('Unexpected sign out error:', err);
       toast({
         title: "Error",
         description: "An unexpected error occurred while signing out.",
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
-  return (
-    <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+  const handleProfile = () => {
+    navigate('/profile');
+  };
+  return <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center space-x-2">
           <div className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-xl font-bold text-transparent">
@@ -47,36 +55,36 @@ const Header = () => {
         </div>
         
         <nav className="hidden md:flex items-center space-x-6">
-          <a href="#features" className="text-muted-foreground hover:text-foreground transition-colors">
-            Features
-          </a>
-          <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
-            Pricing
-          </a>
-          <a href="#about" className="text-muted-foreground hover:text-foreground transition-colors">
-            About
-          </a>
+          
+          
         </nav>
 
         <div className="flex items-center space-x-4">
-          {user ? (
-            <div className="flex items-center space-x-4">
-              <span className="text-sm text-muted-foreground">
-                Welcome, {user.email}
-              </span>
-              <Button variant="ghost" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-            </div>
-          ) : (
-            <Button variant="ghost" onClick={() => navigate('/auth')}>
+          {user ? <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="flex items-center space-x-2">
+                  <span className="text-sm text-muted-foreground">
+                    {user.email}
+                  </span>
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem onClick={handleProfile}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Sign Out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu> : <Button variant="ghost" onClick={() => navigate('/auth')}>
               Sign In
-            </Button>
-          )}
+            </Button>}
         </div>
       </div>
-    </header>
-  );
+    </header>;
 };
-
 export default Header;
