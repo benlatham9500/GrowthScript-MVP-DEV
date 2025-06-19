@@ -47,6 +47,23 @@ serve(async (req) => {
     if (customers.data.length > 0) {
       customerId = customers.data[0].id;
       logStep("Existing customer found", { customerId });
+
+      // Check for existing active subscriptions
+      const existingSubscriptions = await stripe.subscriptions.list({
+        customer: customerId,
+        status: "active",
+        limit: 10,
+      });
+
+      if (existingSubscriptions.data.length > 0) {
+        logStep("Found existing active subscriptions", { count: existingSubscriptions.data.length });
+        
+        // Cancel all existing active subscriptions
+        for (const subscription of existingSubscriptions.data) {
+          await stripe.subscriptions.cancel(subscription.id);
+          logStep("Canceled existing subscription", { subscriptionId: subscription.id });
+        }
+      }
     } else {
       logStep("No existing customer found");
     }

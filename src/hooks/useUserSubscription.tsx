@@ -36,13 +36,38 @@ export const useUserSubscription = () => {
       }
       
       // Then fetch from the database
-      const { data, error } = await supabase
+      let { data, error } = await supabase
         .from('users')
         .select('_id, email, plan, client_limit')
         .eq('email', user.email)
         .single();
 
-      if (error) {
+      // If no user record exists, create one
+      if (error && error.code === 'PGRST116') {
+        console.log('No user record found, creating one...');
+        
+        const { data: insertData, error: insertError } = await supabase
+          .from('users')
+          .insert({
+            _id: user.id,
+            email: user.email,
+            plan: 'none',
+            client_limit: 0
+          })
+          .select('_id, email, plan, client_limit')
+          .single();
+
+        if (insertError) {
+          console.error('Error creating user record:', insertError);
+          setError(insertError.message);
+        } else {
+          console.log('Created user record:', insertData);
+          data = insertData;
+          error = null;
+        }
+      }
+
+      if (error && error.code !== 'PGRST116') {
         console.error('Error fetching subscription:', error);
         setError(error.message);
       } else {

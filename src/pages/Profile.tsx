@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft, User, CreditCard, Shield } from 'lucide-react';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import DeleteAccountDialog from '@/components/DeleteAccountDialog';
 
 const Profile = () => {
   const { user, signOut } = useAuth();
@@ -324,10 +325,13 @@ const Profile = () => {
                   Actions that cannot be undone
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <Button variant="destructive" onClick={handleSignOut}>
-                  Sign Out
-                </Button>
+              <CardContent className="space-y-3">
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button variant="destructive" onClick={handleSignOut}>
+                    Sign Out
+                  </Button>
+                  <DeleteAccountDialog userEmail={user.email || ''} />
+                </div>
               </CardContent>
             </Card>
           </div>

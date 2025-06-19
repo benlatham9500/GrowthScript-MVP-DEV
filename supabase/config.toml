@@ -134,3 +134,9 @@ verify_jwt = true
 
 [functions.customer-portal]
 verify_jwt = true
+
+[functions.seed-frameworks]
+verify_jwt = false
+
+[functions.generate-framework-embeddings]
+verify_jwt = false
