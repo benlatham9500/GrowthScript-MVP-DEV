@@ -49,28 +49,59 @@ export const useClients = () => {
 
   const deleteClientMutation = useMutation({
     mutationFn: async (clientId: string) => {
-      const { error } = await supabase
+      console.log('Starting client deletion process for client:', clientId);
+      
+      // Delete project profile (renamed from client embeddings)
+      const { error: profileError } = await supabase
+        .from('project_profile')
+        .delete()
+        .eq('client_id', clientId);
+
+      if (profileError) {
+        console.error('Error deleting project profile:', profileError);
+        throw new Error('Failed to delete client project profile');
+      }
+
+      console.log('Successfully deleted project profile');
+
+      // Delete chat history
+      const { error: chatError } = await supabase
+        .from('chat_history')
+        .delete()
+        .eq('client_id', clientId);
+
+      if (chatError) {
+        console.error('Error deleting chat history:', chatError);
+        throw new Error('Failed to delete client chat history');
+      }
+
+      console.log('Successfully deleted chat history');
+
+      // Finally delete the client record
+      const { error: clientError } = await supabase
         .from('clients')
         .delete()
         .eq('id', clientId);
 
-      if (error) {
-        console.error('Error deleting client:', error);
-        throw error;
+      if (clientError) {
+        console.error('Error deleting client:', clientError);
+        throw new Error('Failed to delete client record');
       }
+
+      console.log('Successfully deleted client record');
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast({
         title: "Success",
-        description: "Client deleted successfully",
+        description: "Client and all associated data deleted successfully",
       });
     },
     onError: (error) => {
       console.error('Delete client error:', error);
       toast({
         title: "Error",
-        description: "Failed to delete client. Please try again.",
+        description: error.message || "Failed to delete client. Please try again.",
         variant: "destructive",
       });
     },

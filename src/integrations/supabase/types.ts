@@ -47,38 +47,6 @@ export type Database = {
           },
         ]
       }
-      client_embeddings: {
-        Row: {
-          client_id: string
-          content: string
-          created_at: string
-          embedding: string | null
-          id: string
-        }
-        Insert: {
-          client_id: string
-          content: string
-          created_at?: string
-          embedding?: string | null
-          id?: string
-        }
-        Update: {
-          client_id?: string
-          content?: string
-          created_at?: string
-          embedding?: string | null
-          id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "client_embeddings_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       clients: {
         Row: {
           audience: string | null
@@ -114,6 +82,151 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      framework_embeddings: {
+        Row: {
+          created_at: string
+          embedding: string | null
+          framework_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          embedding?: string | null
+          framework_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          embedding?: string | null
+          framework_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "framework_embeddings_framework_id_fkey"
+            columns: ["framework_id"]
+            isOneToOne: true
+            referencedRelation: "frameworks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      frameworks: {
+        Row: {
+          author: string | null
+          category: string | null
+          created_at: string
+          example: string | null
+          id: string
+          keywords: Json | null
+          related_frameworks: Json | null
+          summary: string | null
+          tags: Json | null
+          title: string
+          updated_at: string
+          use_when: string | null
+        }
+        Insert: {
+          author?: string | null
+          category?: string | null
+          created_at?: string
+          example?: string | null
+          id?: string
+          keywords?: Json | null
+          related_frameworks?: Json | null
+          summary?: string | null
+          tags?: Json | null
+          title: string
+          updated_at?: string
+          use_when?: string | null
+        }
+        Update: {
+          author?: string | null
+          category?: string | null
+          created_at?: string
+          example?: string | null
+          id?: string
+          keywords?: Json | null
+          related_frameworks?: Json | null
+          summary?: string | null
+          tags?: Json | null
+          title?: string
+          updated_at?: string
+          use_when?: string | null
+        }
+        Relationships: []
+      }
+      memory: {
+        Row: {
+          client_id: string
+          id: string
+          key: string
+          updated_at: string
+          user_id: string
+          value: Json | null
+        }
+        Insert: {
+          client_id: string
+          id?: string
+          key: string
+          updated_at?: string
+          user_id: string
+          value?: Json | null
+        }
+        Update: {
+          client_id?: string
+          id?: string
+          key?: string
+          updated_at?: string
+          user_id?: string
+          value?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "memory_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "memory_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["_id"]
+          },
+        ]
+      }
+      project_profile: {
+        Row: {
+          client_id: string
+          created_at: string
+          embedding: string | null
+          id: string
+        }
+        Insert: {
+          client_id: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+        }
+        Update: {
+          client_id?: string
+          created_at?: string
+          embedding?: string | null
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_embeddings_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       users: {
         Row: {
