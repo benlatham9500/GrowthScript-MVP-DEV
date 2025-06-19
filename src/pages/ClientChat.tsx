@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -14,6 +13,7 @@ import { ChevronDown, Send, ArrowLeft, User, LogOut, LoaderCircle } from 'lucide
 import { useToast } from '@/hooks/use-toast';
 import ChatSidebar from '@/components/ChatSidebar';
 import { streamChatResponse } from '@/utils/chatApi';
+import { set } from 'date-fns';
 
 interface Message {
   id: string;
@@ -24,67 +24,148 @@ interface Message {
 }
 
 // Helper function to format AI response content
-const formatAIResponse = (content: string) => {
-  // Split content into paragraphs
-  const paragraphs = content.split('\n\n').filter(p => p.trim());
-  
-  return paragraphs.map((paragraph, index) => {
-    const trimmed = paragraph.trim();
-    
-    // Handle headings (lines starting with #)
-    if (trimmed.startsWith('#')) {
-      const level = trimmed.match(/^#+/)?.[0].length || 1;
-      const text = trimmed.replace(/^#+\s*/, '');
-      
-      if (level === 1) {
-        return <h1 key={index} className="text-lg font-bold mb-3 text-foreground">{text}</h1>;
-      } else if (level === 2) {
-        return <h2 key={index} className="text-base font-semibold mb-2 text-foreground">{text}</h2>;
-      } else {
-        return <h3 key={index} className="text-sm font-medium mb-2 text-foreground">{text}</h3>;
-      }
-    }
-    
-    // Handle bullet points
-    if (trimmed.includes('\n- ') || trimmed.startsWith('- ')) {
-      const items = trimmed.split('\n').filter(line => line.trim().startsWith('- '));
-      if (items.length > 0) {
-        return (
-          <ul key={index} className="list-disc pl-4 mb-3 space-y-1">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="text-sm leading-relaxed">
-                {item.replace(/^- /, '')}
-              </li>
-            ))}
-          </ul>
-        );
-      }
-    }
-    
-    // Handle numbered lists
-    if (trimmed.includes('\n1. ') || /^\d+\.\s/.test(trimmed)) {
-      const items = trimmed.split('\n').filter(line => /^\d+\.\s/.test(line.trim()));
-      if (items.length > 0) {
-        return (
-          <ol key={index} className="list-decimal pl-4 mb-3 space-y-1">
-            {items.map((item, itemIndex) => (
-              <li key={itemIndex} className="text-sm leading-relaxed">
-                {item.replace(/^\d+\.\s/, '')}
-              </li>
-            ))}
-          </ol>
-        );
-      }
-    }
-    
-    // Regular paragraph
-    return (
-      <p key={index} className="text-sm leading-relaxed mb-3 last:mb-0">
-        {trimmed}
-      </p>
-    );
-  });
-};
+// const formatAIResponse = (content: string) => {
+//   // Split into lines for more granular parsing
+//   const lines = content.split('\n');
+//   const blocks: { type: string; content: string[] }[] = [];
+//   let currentBlock: { type: string; content: string[] } | null = null;
+
+//   const flushBlock = () => {
+//     if (currentBlock && currentBlock.content.length > 0) {
+//       blocks.push(currentBlock);
+//     }
+//     currentBlock = null;
+//   };
+
+//   for (const line of lines) {
+//     const trimmed = line.trim();
+//     if (!trimmed) {
+//       flushBlock();
+//       continue;
+//     }
+//     // Headings
+//     if (/^#{1,6}\s/.test(trimmed)) {
+//       flushBlock();
+//       blocks.push({ type: 'heading', content: [trimmed] });
+//       continue;
+//     }
+//     // Bullet list
+//     if (/^-\s+/.test(trimmed)) {
+//       if (!currentBlock || currentBlock.type !== 'ul') {
+//         flushBlock();
+//         currentBlock = { type: 'ul', content: [] };
+//       }
+//       currentBlock.content.push(trimmed);
+//       continue;
+//     }
+//     // Numbered list
+//     if (/^\d+\.\s+/.test(trimmed)) {
+//       if (!currentBlock || currentBlock.type !== 'ol') {
+//         flushBlock();
+//         currentBlock = { type: 'ol', content: [] };
+//       }
+//       currentBlock.content.push(trimmed);
+//       continue;
+//     }
+//     // Paragraph
+//     if (!currentBlock || currentBlock.type !== 'p') {
+//       flushBlock();
+//       currentBlock = { type: 'p', content: [] };
+//     }
+//     currentBlock.content.push(trimmed);
+//   }
+//   flushBlock();
+
+//   // Render blocks
+//   return blocks.map((block, idx) => {
+//     if (block.type === 'heading') {
+//       const level = block.content[0].match(/^#+/)?.[0].length || 1;
+//       const text = block.content[0].replace(/^#+\s*/, '');
+//       if (level === 1) return <h1 key={idx} className="text-lg font-bold mb-3 text-foreground">{text}</h1>;
+//       if (level === 2) return <h2 key={idx} className="text-base font-semibold mb-2 text-foreground">{text}</h2>;
+//       return <h3 key={idx} className="text-sm font-medium mb-2 text-foreground">{text}</h3>;
+//     }
+//     if (block.type === 'ul') {
+//       return (
+//         <ul key={idx} className="list-disc pl-4 mb-3 space-y-1">
+//           {block.content.map((item, i) => (
+//             <li key={i} className="text-sm leading-relaxed">{item.replace(/^- /, '')}</li>
+//           ))}
+//         </ul>
+//       );
+//     }
+//     if (block.type === 'ol') {
+//       return (
+//         <ol key={idx} className="list-decimal pl-4 mb-3 space-y-1">
+//           {block.content.map((item, i) => (
+//             <li key={i} className="text-sm leading-relaxed">{item.replace(/^\d+\.\s/, '')}</li>
+//           ))}
+//         </ol>
+//       );
+//     }
+//     // Paragraph
+//     return (
+//       <p key={idx} className="text-sm leading-relaxed mb-3 last:mb-0">
+//         {block.content.join(' ')}
+//       </p>
+//     );
+//   });
+// };
+
+// function formatAIResponseHTML(content: string) {
+//   // 1. Escape HTML special chars (optional, for safety)
+//   let safe = content
+//     .replace(/&/g, "&amp;")
+//     .replace(/</g, "&lt;")
+//     .replace(/>/g, "&gt;");
+
+//   // 2. Bold (**text**)
+//   safe = safe.replace(/\*\*(.*?)\*\*/g, "<b>$1</b>");
+
+//   // 3. Headings (###, ##, #)
+//   safe = safe
+//     .replace(/^### (.*)$/gm, "<h3 class='text-base font-semibold mb-2'>$1</h3>")
+//     .replace(/^## (.*)$/gm, "<h2 class='text-lg font-bold mb-3'>$1</h2>")
+//     .replace(/^# (.*)$/gm, "<h1 class='text-xl font-bold mb-3'>$1</h1>");
+
+//   // 4. Numbered lists: group consecutive lines starting with "1. ", "2. ", etc.
+//   safe = safe.replace(/((?:^\d+\..*(?:\n|$))+)/gm, match => {
+//     const items = match
+//       .trim()
+//       .split('\n')
+//       .map(line => line.replace(/^\d+\.\s*/, '').trim())
+//       .filter(Boolean)
+//       .map(item => `<li>${item}</li>`)
+//       .join('');
+//     return `<ol class="list-decimal pl-4 mb-3 space-y-1">${items}</ol>`;
+//   });
+
+//   // 5. Bullet lists: group consecutive lines starting with "- "
+//   safe = safe.replace(/((?:^- .*(?:\n|$))+)/gm, match => {
+//     const items = match
+//       .trim()
+//       .split('\n')
+//       .map(line => line.replace(/^- /, '').trim())
+//       .filter(Boolean)
+//       .map(item => `<li>${item}</li>`)
+//       .join('');
+//     return `<ul class="list-disc pl-4 mb-3 space-y-1">${items}</ul>`;
+//   });
+
+//   // 6. Paragraphs: split by double newlines, wrap in <p>
+//   safe = safe.replace(/(?:\r?\n){2,}/g, '</p><p>');
+//   safe = `<p>${safe}</p>`;
+
+//   // 7. Single line breaks
+//   safe = safe.replace(/\n/g, '<br>');
+
+//   // 8. Remove <p> tags around block elements (ul, ol, h1, h2, h3)
+//   safe = safe
+//     .replace(/<p>(\s*<(ul|ol|h[1-3])[\s\S]*?<\/\2>)\s*<\/p>/g, '$1')
+//     .replace(/(<\/ul>|<\/ol>|<\/h[1-3]>)<br>/g, '$1');
+
+//   return safe;
+// }
 
 const ClientChat = () => {
   const { clientId } = useParams<{ clientId: string }>();
@@ -107,7 +188,7 @@ const ClientChat = () => {
   const [isWaitingForResponse, setIsWaitingForResponse] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  
+
   const client = clients.find(c => c.id === clientId);
 
   // Load messages when chat changes
@@ -189,23 +270,21 @@ const ClientChat = () => {
     }
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(), // Use a unique ID
       content: inputValue,
       isUser: true,
       timestamp: new Date()
     };
 
-    // Update UI immediately with user message
-    setMessages(prev => [...prev, userMessage]);
     const currentInput = inputValue;
     setInputValue('');
     setIsWaitingForResponse(true);
 
-    // Save user message to database
     await saveMessageToChat(activeChatId, userMessage);
+    let updatedMessages = [...messages, userMessage];
 
-    // Create AI message placeholder for streaming
-    const aiMessageId = (Date.now() + 1).toString();
+    // Generate a unique ID for the AI message
+    const aiMessageId = crypto.randomUUID();
     const aiMessage: Message = {
       id: aiMessageId,
       content: '',
@@ -214,12 +293,14 @@ const ClientChat = () => {
       isStreaming: true
     };
 
-    // Add empty AI message to UI immediately
-    setMessages(prev => [...prev, aiMessage]);
+    updatedMessages = [...updatedMessages, aiMessage];
+
+    console.log('message state before streaming:', updatedMessages);
+
+    setMessages(updatedMessages);
 
     try {
-      console.log('Starting streaming response...');
-      
+
       // Stream response from backend with real-time UI updates
       await streamChatResponse({
         client_id: clientId!,
@@ -228,48 +309,41 @@ const ClientChat = () => {
         user_input: currentInput
       }, {
         onData: (chunk: string) => {
-          console.log('Received streaming chunk:', chunk);
           setIsWaitingForResponse(false);
 
           // Update the AI message content in real-time - FORCE IMMEDIATE UPDATE
-          setMessages(prev => {
-            const newMessages = prev.map(msg => {
-              if (msg.id === aiMessageId) {
-                return {
-                  ...msg,
-                  content: msg.content + chunk,
-                  isStreaming: true
-                };
-              }
-              return msg;
-            });
-            console.log('Updated messages with new chunk, total AI content length:', 
-              newMessages.find(m => m.id === aiMessageId)?.content.length);
-            return newMessages;
+          updatedMessages = updatedMessages.map(msg => {
+            if (msg.id === aiMessageId) {
+              return {
+                ...msg,
+                content: msg.content + chunk,
+                isStreaming: true
+              };
+            }
+            return msg;
           });
+
+          setMessages(updatedMessages);
         },
         onComplete: async () => {
-          console.log('Stream completed');
           setIsWaitingForResponse(false);
 
           // Mark streaming as complete and save final message
-          setMessages(prev => {
-            const updatedMessages = prev.map(msg => {
-              if (msg.id === aiMessageId) {
-                const finalMessage = {
-                  ...msg,
-                  isStreaming: false
-                };
-                // Save the complete AI message to database
-                saveMessageToChat(activeChatId, finalMessage);
-                return finalMessage;
-              }
-              return msg;
-            });
-            return updatedMessages;
+          updatedMessages = updatedMessages.map(msg => {
+            if (msg.id === aiMessageId) {
+              const finalMessage = {
+                ...msg,
+                isStreaming: false
+              };
+              saveMessageToChat(activeChatId, finalMessage);
+              return finalMessage;
+            }
+            return msg;
           });
 
-          await fetchChatHistory();
+          setMessages(updatedMessages);
+
+          // await fetchChatHistory();
         },
         onError: (error: Error) => {
           console.error('Streaming error:', error);
@@ -302,7 +376,7 @@ const ClientChat = () => {
     } catch (error) {
       console.error('Chat error:', error);
       setIsWaitingForResponse(false);
-      
+
       toast({
         title: "Error",
         description: "Failed to send message. Please try again.",
@@ -384,7 +458,7 @@ const ClientChat = () => {
                 <ArrowLeft className="h-4 w-4 mr-2" />
                 Back to Dashboard
               </Button>
-              
+
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-muted-foreground">Client:</span>
                 <Select value={clientId} onValueChange={handleClientChange}>
@@ -401,7 +475,7 @@ const ClientChat = () => {
                     ))}
                   </SelectContent>
                 </Select>
-                <span className="text-muted-foreground">→ GrowthScript Brain</span>
+                <span className="text-muted-foreground">→  GrowthScript Brain</span>
               </div>
             </div>
           </div>
@@ -433,7 +507,14 @@ const ClientChat = () => {
                             <p className="whitespace-pre-wrap">{message.content}</p>
                           ) : (
                             <div className="prose prose-sm max-w-none dark:prose-invert">
-                              {message.content ? formatAIResponse(message.content) : (
+                              {message.content ? (
+                                <div
+                                  dangerouslySetInnerHTML={{
+                                    __html: message.content.replace(/\n/g, "<br>").replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")
+                                      .replace(/### (.*?)(<br>|$)/g, "<h3 class='text-lg font-bold'>$1</h3>"),
+                                  }}
+                                />
+                              ) : (
                                 <div className="flex items-center space-x-2">
                                   <div className="flex space-x-1">
                                     <div className="w-2 h-2 bg-muted-foreground rounded-full animate-bounce"></div>
@@ -453,7 +534,7 @@ const ClientChat = () => {
                               <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
                               <div className="w-2 h-2 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
                             </div>
-                            <span className="text-xs ml-2 opacity-70">AI is typing...</span>
+                            <span className="text-xs ml-2 opacity-70">Agent is typing...</span>
                           </div>
                         )}
                         <p className={`text-xs mt-3 opacity-70 ${message.isUser ? 'text-purple-100' : 'text-muted-foreground'}`}>
@@ -463,7 +544,7 @@ const ClientChat = () => {
                     </Card>
                   </div>
                 ))}
-                
+
                 {/* Waiting for response animation with circle */}
                 {isWaitingForResponse && (
                   <div className="flex justify-start">
@@ -477,7 +558,7 @@ const ClientChat = () => {
                     </Card>
                   </div>
                 )}
-                
+
                 <div ref={messagesEndRef} />
               </div>
             </div>
